@@ -11,6 +11,7 @@ import adsk.core
 import adsk.cam
 
 import os
+from time import sleep
 
 from ...lib import fusion360utils as futil
 
@@ -31,9 +32,12 @@ COMMAND_BESIDE_ID = 'ScriptsManagerCommand'
 # Resource location for command icons, here we assume a sub folder in this directory named "resources".
 ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', '')
 
-# Local list of event handlers used to maintain a reference so
-# they are not released and garbage collected.
+# Local list of event handlers used to maintain a reference
+# So they are not released and garbage collected.
 local_handlers = []
+
+# Time to sleep while waiting for tool path regeneration to complete (in seconds)
+POST_PROCESS_INTERVAL = 1
 
 
 # Executed when add-in is run.
@@ -108,7 +112,15 @@ def command_execute(args: adsk.core.CommandEventArgs):
     # TODO ******************************** Update MFG here ********************************
 
     # Regenerate the tool paths
-    cam.generateAllToolpaths(False)
+    future = cam.generateAllToolpaths(False)
+
+    # Wait for tool path generation to complete
+    while not future.isGenerationCompleted:
+        app.log('Waiting for CAM to finish')
+        adsk.doEvents()
+        sleep(POST_PROCESS_INTERVAL)
+
+    # TODO Add POST Process functions here
 
 
 # This event handler is called when the command terminates.
